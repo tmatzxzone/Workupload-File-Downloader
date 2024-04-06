@@ -1,4 +1,5 @@
 import logging
+import re
 from tqdm import tqdm
 from sys import argv, exit
 from re import sub, search
@@ -50,7 +51,9 @@ def get_file_information(url: str, headers: dict) -> dict:
     file_response = get(url, headers=headers, stream=True)
 
     name = file_response.headers.get('Content-Disposition')
-    name = search(r'filename="(.+)"', name).group(1)
+    name = re.search(r'filename="(.+?)"', name).group(1)
+    name = name.encode('latin1').decode('utf-8')  # Decode using UTF-8
+
 
     size = file_response.headers.get('Content-Length', 0)
 
@@ -85,7 +88,7 @@ if __name__ == '__main__':
 
     link = argv[1]
     parts = extract(link)
-    token = get_token(link)
+    token = put token here bruh
 
     headers = {'Cookie': f'token={token}'}
     dl_url = get_download_url(parts, headers)
