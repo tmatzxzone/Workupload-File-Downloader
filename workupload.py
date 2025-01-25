@@ -35,14 +35,35 @@ def get_token(url: str) -> str:
 
 def get_download_url(parts: dict, headers: dict) -> str:
     print(" ")
-    logging.info(f"Requesting download URL...")
+    logging.info("Requesting download URL...")
     api_url = f"https://workupload.com/api/{parts['type']}/getDownloadServer/{parts['id']}"
 
-    data_response = get(api_url, headers=headers)
-    dl_url = loads(data_response.text)['data']['url']
+    for attempt in range(3):
+        data_response = get(api_url, headers=headers)
+        logging.debug(f"Attempt {attempt + 1}: Status Code: {data_response.status_code}")
+        if data_response.status_code == 200:
+            break
+        logging.warning(f"Failed to get a valid response. Retrying... ({attempt + 1}/3)")
+        time.sleep(2)
+    else:
+        logging.error("Failed to get a valid response after 3 attempts.")
+        raise ValueError("Failed to get a valid response.")
 
-    logging.info(f"Downloading from {dl_url}")
-    return dl_url
+    try:
+        logging.debug(f"API Response: {data_response.text}")
+        json_data = loads(data_response.text)
+        dl_url = json_data['data']['url']
+        logging.info(f"Downloading from {dl_url}")
+        return dl_url
+    except json.JSONDecodeError:
+        logging.error("Failed to decode JSON from response.")
+        logging.error(f"Response content: {data_response.text}")
+        raise
+    except KeyError:
+        logging.error("The response JSON does not contain the expected keys.")
+        logging.error(f"Response content: {data_response.text}")
+        raise
+
 
 
 def get_file_information(url: str, headers: dict) -> dict:
